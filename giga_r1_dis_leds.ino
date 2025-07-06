@@ -1,4 +1,4 @@
-#include "Arduino_H7_Video.h"
+include "Arduino_H7_Video.h"
 #include "Arduino_GigaDisplayTouch.h"
 #include "lvgl.h"
 #include <FastLED.h>
@@ -104,7 +104,7 @@ void setup() {
   add_slider(2, 0, &c, "Albastru",   2, 0, 255);
   add_slider(3, 0, &d, "Intarziere", 3, 5, 100);
 
-  add_slider(0, 1, &e, "Efect",      4, 1, 8);
+  add_slider(0, 1, &e, "Efect",      4, 1, 11);
   add_slider(1, 1, &f, "Luminoz.",   5, 0, 255);
   add_slider(2, 1, &g, "FadeBlack",  6, 0, 255);
   add_slider(3, 1, &h, "Viteza",     7, 0, 255);
@@ -136,20 +136,23 @@ void loop() {
   lv_timer_handler();  // actualizează LVGL
 
   switch (e) {
-    case 1: efect1(a, b, c, d, f,g); break;            // cometa pe linie sens +
-    case 2: efect2(a, b, c, d, f,g); break;            // cometa pe linie sens - 
-    case 3: efectZigZag(a, b, c, d,f,g); break;          // cometa pe coloana sens + 
-    case 4: efectZigZagInvers(a, b, c, d,f,g); break;    // cometa pe coloana sens - 
-    case 5: efect3(a, b, c, d, f); break;            // respiratie
-    case 6: efectRainbow(d,g); break;               // curcubeu
-    case 7: efectValuri(a,b,c,d,f); break;
-    case 8: efectAprind(d); break;
+    case 1: linie1(a, b, c, d, f,g); break;             // cometa pe linie sens +
+    case 2: linie2(a, b, c, d, f,g); break;             // cometa pe linie sens - 
+    case 3: efectZigZag(a, b, c, d,f,g); break;         // cometa pe coloana sens + 
+    case 4: efectZigZagInvers(a, b, c, d,f,g); break;   // cometa pe coloana sens - 
+    case 5: respiratie(a, b, c, d, f); break;           // respiratie
+    case 6: efectRainbow(d,g); break;                   // curcubeu
+    case 7: efectValuri(a,b,c,d,f); break;              // sinusoide
+    case 8: efectAprind(d); break;                      // aprindere cu intarzierea selectata de cursor ( cu culori hue+=25)
+    case 9: efectAprind1(a,b,c); break;                 // aprindere cu culoarea selectata de cursor 
+    case 10: aparitie(d); break;                        // aprindere prin aparitie pana la umplere
+    case 11: picaturi(d,g); break;                      // intervale luminoase de culori diferite
   }
 }
 
 
 //---------------------------------------------------------------------- efect 1
-void efect1(int red, int green, int blue, int delayTime, int bri,int fade) {
+void linie1(int red, int green, int blue, int delayTime, int bri,int fade) {
   static uint16_t index = 0;
   static unsigned long lastUpdate = 0;
 
@@ -165,7 +168,7 @@ void efect1(int red, int green, int blue, int delayTime, int bri,int fade) {
 }
 
 //---------------------------------------------------------------------- efect 2
-void efect2(int red, int green, int blue, int delayTime, int bri,int fade) {
+void linie2(int red, int green, int blue, int delayTime, int bri,int fade) {
   static uint16_t index = NUM_LEDS;
   static unsigned long lastUpdate = 0;
 
@@ -191,14 +194,14 @@ int XY(int x, int y) {
 }
 
 //---------------------------------------------------------------------- efect 3
-void efectZigZag(int r, int g, int b, int delayTime,int bri,int fade) {
+void efectZigZag(int r, int g, int bl, int delayTime,int bri,int fade) {
   static unsigned long lastUpdate = 0;
   static int x = 0;
   static int y = 0;
 
   if (millis() - lastUpdate > delayTime) {
     int py = (x % 2 == 0) ? y : NUM_COL - 1 - y;
-    leds[XY(x, py)] = CRGB(r, g, b);
+    leds[XY(x, py)] = CRGB(r, g, bl);
     FastLED.setBrightness(bri);
     FastLED.show();
     fadeToBlackBy(leds, NUM_LEDS, fade);
@@ -216,14 +219,14 @@ void efectZigZag(int r, int g, int b, int delayTime,int bri,int fade) {
 }
 
 //---------------------------------------------------------------------- efect 4
-void efectZigZagInvers(int r, int g, int b, int delayTime, int bri, int fade) {
+void efectZigZagInvers(int r, int g, int bl, int delayTime, int bri, int fade) {
   static unsigned long lastUpdate = 0;
   static int x = NUM_ROW - 1;
   static int y = NUM_COL - 1;
 
   if (millis() - lastUpdate > delayTime) {
     int py = (x % 2 == 0) ? y : NUM_COL - 1 - y;
-    leds[XY(x, py)] = CRGB(r, g, b);
+    leds[XY(x, py)] = CRGB(r, g, bl);
     FastLED.setBrightness(bri);
     FastLED.show();
     fadeToBlackBy(leds, NUM_LEDS, fade);
@@ -240,7 +243,7 @@ void efectZigZagInvers(int r, int g, int b, int delayTime, int bri, int fade) {
 }
 
 //---------------------------------------------------------------------- efect 5
-void efect3(int red, int green, int blue, int delayTime, int bri) {
+void respiratie(int red, int green, int blue, int delayTime, int bri) {
   static int brightness = 0;
   static int direction = 1;
   static unsigned long lastUpdate = 0;
@@ -264,22 +267,6 @@ void efect3(int red, int green, int blue, int delayTime, int bri) {
 }
 
 //---------------------------------------------------------------------- efect 6
-/*
-void efectRainbow(uint8_t delayTime, uint8_t bri) {
-  static uint8_t hue = 0;
-  static unsigned long lastUpdate = 0;
-  static int i=0;
-
-  if (millis() - lastUpdate > delayTime) {  
-  leds[i]=CHSV(hue++,250,250);
-  FastLED.setBrightness(bri);
-  FastLED.show();
-  i++;
-  if(i == NUM_LEDS){i=0;}
-  lastUpdate = millis();
-  }
-}
-*/
 
 void efectRainbow(uint8_t delayTime, int fade) {
   static unsigned long lastUpdate = 0;
@@ -326,7 +313,7 @@ void efectRainbow(uint8_t delayTime, int fade) {
 }
 
 //---------------------------------------------------------------------- efect 7
-void efectValuri(int r, int g, int b, int delayTime, float viteza) {
+void efectValuri(int r, int g, int bl, int delayTime, float viteza) {
   static unsigned long lastUpdate = 0;
   static int t = 0;
 
@@ -335,10 +322,147 @@ void efectValuri(int r, int g, int b, int delayTime, float viteza) {
     for (int x = 0; x < NUM_ROW; x++) {
       float yVal = (sin((x + t * viteza) * 0.4) + 1.0) * (NUM_COL / 2.0 - 1);
       int y = round(yVal);
-      leds[XY(x, y)] = CRGB(r, g, b);
+      leds[XY(x, y)] = CRGB(r, g, bl);
     }
     FastLED.show();
     t++;
     lastUpdate = millis();
+  }
+}
+
+//---------------------------------------------------------------------- efect 8
+void efectAprind(int delayTime) {
+  static int i = 0;
+  static int hue = 0;
+  static unsigned long lastUpdate = 0;
+
+  if (hue > 255) return; // Am terminat toate rundele
+
+  if (millis() - lastUpdate > delayTime) {
+    leds[i] = CHSV(hue, 250, 250);
+    FastLED.show();
+
+    Serial.println("LED " + String(i) + " -> hue: " + String(hue));
+
+    i++;
+    if (i >= NUM_LEDS) {
+      i = 0;
+      hue += 25;
+    }
+    lastUpdate = millis();
+  }
+}
+
+//---------------------------------------------------------------------- efect 9
+void efectAprind1(int r, int g, int bl ) {
+  fill_solid(leds,NUM_LEDS,CRGB(r,g,bl));
+  FastLED.show();
+}
+
+//---------------------------------------------------------------------- efect 10
+void aparitie(int delayTime) {
+  static int step = 0;
+  static int i = 0;
+  static int k = 0;
+  static int m = 0;
+  static unsigned long lastUpdate = 0;
+
+  if (m >= 255) return; // efect terminat
+
+  if (millis() - lastUpdate < delayTime) return; // nu a trecut timpul
+
+  switch (step) {
+    case 0: // Stingem toate LED-urile unul câte unul
+      leds[i] = CRGB::Black;
+      FastLED.show();
+      i++;
+      if (i >= NUM_LEDS) {
+        i = 0;
+        k = 0;
+        step = 1;
+      }
+      break;
+
+    case 1: // Faza de aprindere random (3 runde)
+      {
+        int j = random(NUM_LEDS);
+        leds[j] = CHSV(m, 255, 255);
+        FastLED.show();
+        i++;
+        if (i >= NUM_LEDS) {
+          i = 0;
+          k++;
+          if (k >= 3) {
+            k = 0;
+            m += 25;
+            if (m >= 255) {
+              Serial.println("-------------------- END PROC --------------------");
+              return;
+            }
+            step = 0; // reîncepem cu stingerea
+            Serial.println("=================================================");
+            Serial.println("Aparitie random pana la umplere, hue=" + String(m));
+          }
+        }
+      }
+      break;
+  }
+
+  lastUpdate = millis();
+}
+
+//---------------------------------------------------------------------- efect 11
+struct Drop {
+  int pos;
+  int speed;
+  CRGB color;
+  bool active;
+};
+
+const int MAX_DROPS = 20;
+Drop drops[MAX_DROPS];
+
+// Timpul între actualizări
+unsigned long previousUpdate = 0;
+const unsigned long updateInterval = 60; // în milisecunde
+
+void picaturi(int updateInterval, int fade) {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousUpdate >= updateInterval) {
+    previousUpdate = currentMillis;
+
+    fadeToBlackBy(leds, NUM_LEDS, fade); // Estompează
+
+    // Actualizare picături
+    for (int i = 0; i < MAX_DROPS; i++) {
+      if (drops[i].active) {
+        drops[i].pos += drops[i].speed;
+        if (drops[i].pos >= 0 && drops[i].pos < NUM_LEDS) {
+          leds[drops[i].pos] += drops[i].color;
+        } else {
+          drops[i].active = false;
+        }
+      }
+    }
+
+    // Apariție aleatoare a picăturilor
+    if (random8() < 30) {
+      addNewDrop();
+    }
+
+    FastLED.show();
+  }
+}
+
+void addNewDrop() {
+  for (int i = 0; i < MAX_DROPS; i++) {
+    if (!drops[i].active) {
+      drops[i].pos = 0; // Schimbă în NUM_LEDS-1 pentru sens invers
+      drops[i].speed = 1;
+      drops[i].color = CHSV(random8(), 255, 255);
+      drops[i].active = true;
+      break;
+    }
   }
 }
